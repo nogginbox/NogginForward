@@ -67,9 +67,18 @@ public class ForwardingMessageStoreTests
 		return new ReadOnlySequence<byte>(bytes);
 	}
 
-	private static IDnsMxFinder CreateMockFinder()
+	private static IDnsMxFinder CreateMockFinder(string? domain = null)
 	{
+		const string targetMxServer = "mail.local";
 		var	sub = Substitute.For<IDnsMxFinder>();
+		if(domain == null)
+		{
+			sub.LookupMxServers(Arg.Any<string>()).Returns(new[] { targetMxServer });
+		}
+		else
+		{
+			sub.LookupMxServers(domain).Returns(new[] { targetMxServer });
+		}
 		return sub;
 	}
 
