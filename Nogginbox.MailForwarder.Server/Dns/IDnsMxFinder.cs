@@ -1,4 +1,4 @@
-﻿namespace NogginMailForwarder.Server.Dns;
+﻿namespace Nogginbox.MailForwarder.Server.Dns;
 
 public interface IDnsMxFinder
 {

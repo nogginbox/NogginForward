@@ -6,7 +6,8 @@ An SMTP Mail Server that can be configured to forward emails to another domain's
 This server relies on the following projects:
 
 * [SmtpServer library](https://github.com/cosullivan/SmtpServer) by [Cain O'Sullivan](https://cainosullivan.com/).
-*
+* [DnsClient](https://github.com/MichaCo/DnsClient.NET)
+* [MailKit](https://github.com/jstedfast/MailKit)
 
 And here are some useful reference pages that I read:
 * [SmtpServer issue on how to forward email](https://github.com/cosullivan/SmtpServer/issues/193)

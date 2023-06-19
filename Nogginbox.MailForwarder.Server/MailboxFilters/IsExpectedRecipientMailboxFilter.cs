@@ -2,7 +2,7 @@
 using SmtpServer.Mail;
 using SmtpServer.Storage;
 
-namespace NogginMailForwarder.Server.MailboxFilters;
+namespace Nogginbox.MailForwarder.Server.MailboxFilters;
 
 /// <summary>
 /// Checks to see if the intended recipient of this email is in the configured forward rules.

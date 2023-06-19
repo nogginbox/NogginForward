@@ -1,11 +1,10 @@
-﻿using NogginMailForwarder.Server.MailboxFilters;
-using NogginMailForwarder.Server.MessageStores;
+﻿using MailKit.Net.Smtp;
+using Nogginbox.MailForwarder.Server;
+using Nogginbox.MailForwarder.Server.Dns;
+using Nogginbox.MailForwarder.Server.MailboxFilters;
+using Nogginbox.MailForwarder.Server.MessageStores;
 using SmtpServer;
 using SmtpServer.ComponentModel;
-
-using NogginMailForwarder.Server;
-using NogginMailForwarder.Server.Dns;
-using MailKit.Net.Smtp;
 
 var options = new SmtpServerOptionsBuilder()
 	.ServerName("localhost")

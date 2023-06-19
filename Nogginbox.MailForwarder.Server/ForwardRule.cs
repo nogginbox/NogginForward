@@ -1,10 +1,10 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace NogginMailForwarder.Server;
+namespace Nogginbox.MailForwarder.Server;
 
 public record ForwardRule(string AliasPattern, string ForwardAddress)
 {
-	private readonly Regex _aliasRegex = new (WildCardToRegular(AliasPattern), RegexOptions.IgnoreCase);
+	private readonly Regex _aliasRegex = new(WildCardToRegular(AliasPattern), RegexOptions.IgnoreCase);
 
 	public bool IsMatch(string address) => _aliasRegex.IsMatch(address);
 

@@ -1,6 +1,6 @@
 ﻿using DnsClient;
 
-namespace NogginMailForwarder.Server.Dns;
+namespace Nogginbox.MailForwarder.Server.Dns;
 
 /// <summary>
 /// Looks up the DNS Mail Exchange (MX) records for a domain name.
@@ -11,10 +11,11 @@ public class DnsMxFinder : IDnsMxFinder
 
     public DnsMxFinder()
     {
-        _dnsClient = new()
+        var options = new LookupClientOptions
         {
             UseCache = true
         };
+        _dnsClient = new (options);
     }
 
     /// <summary>

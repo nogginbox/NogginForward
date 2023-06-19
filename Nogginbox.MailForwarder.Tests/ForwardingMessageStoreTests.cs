@@ -1,13 +1,13 @@
 using MailKit.Net.Smtp;
-using NogginMailForwarder.Server;
-using NogginMailForwarder.Server.Dns;
-using NogginMailForwarder.Server.MessageStores;
+using MimeKit;
+using Nogginbox.MailForwarder.Server;
+using Nogginbox.MailForwarder.Server.Dns;
+using Nogginbox.MailForwarder.Server.MessageStores;
 using NSubstitute;
 using SmtpServer;
-using SmtpServerResponse = SmtpServer.Protocol.SmtpResponse;
-using System.Buffers;
 using SmtpServer.Mail;
-using MimeKit;
+using System.Buffers;
+using SmtpServerResponse = SmtpServer.Protocol.SmtpResponse;
 
 namespace Nogginbox.MailForwarder.Tests;
 

@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NogginMailForwarder.Server\NogginMailForwarder.Server.csproj" />
+    <ProjectReference Include="..\Nogginbox.MailForwarder.Server\Nogginbox.MailForwarder.Server.csproj" />
   </ItemGroup>
 
 </Project>

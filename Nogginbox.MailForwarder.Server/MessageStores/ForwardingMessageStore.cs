@@ -1,14 +1,14 @@
 ﻿using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
-using NogginMailForwarder.Server.Dns;
+using Nogginbox.MailForwarder.Server.Dns;
 using SmtpServer;
 using SmtpServer.Mail;
 using SmtpServer.Storage;
 using System.Buffers;
 using SmtpServerResponse = SmtpServer.Protocol.SmtpResponse;
 
-namespace NogginMailForwarder.Server.MessageStores;
+namespace Nogginbox.MailForwarder.Server.MessageStores;
 
 /// <summary>
 /// Forwards the email if the recipient matched an alias in one of the configured forward rules.

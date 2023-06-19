@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NogginMailForwarder.Server", "NogginMailForwarder.Server\NogginMailForwarder.Server.csproj", "{1C5F54CC-ECAF-4A4E-9063-43C44B78F212}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nogginbox.MailForwarder.Server", "Nogginbox.MailForwarder.Server\Nogginbox.MailForwarder.Server.csproj", "{1C5F54CC-ECAF-4A4E-9063-43C44B78F212}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Solution", "_Solution", "{86B03232-E44B-4FEE-975F-DC471A3E042E}"
 	ProjectSection(SolutionItems) = preProject
