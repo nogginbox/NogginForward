@@ -10,3 +10,4 @@ This server relies on the following projects:
 
 And here are some useful reference pages that I read:
 * [SmtpServer issue on how to forward email](https://github.com/cosullivan/SmtpServer/issues/193)
+* [Diving deep into emails: SMTP, envelopes, and headers](https://medium.com/@fabianterh/diving-deep-into-emails-smtp-envelopes-and-headers-a2367d1ad92)

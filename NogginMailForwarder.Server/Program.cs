@@ -4,6 +4,8 @@ using SmtpServer;
 using SmtpServer.ComponentModel;
 
 using NogginMailForwarder.Server;
+using NogginMailForwarder.Server.Dns;
+using MailKit.Net.Smtp;
 
 var options = new SmtpServerOptionsBuilder()
 	.ServerName("localhost")
@@ -13,11 +15,12 @@ var options = new SmtpServerOptionsBuilder()
 	.Build();
 
 var rules = new List<ForwardRule>();
-var dns 
+var dnsFinder = new DnsMxFinder();
+var smtpClient = new SmtpClient();
 
 var serviceProvider = new ServiceProvider();
 serviceProvider.Add(new IsExpectedRecipientMailboxFilter(rules));
-serviceProvider.Add(new ForwardingMessageStore(rules));
+serviceProvider.Add(new ForwardingMessageStore(rules, dnsFinder, smtpClient));
 //serviceProvider.Add(new SampleUserAuthenticator());
 
 var smtpServer = new SmtpServer.SmtpServer(options, serviceProvider);

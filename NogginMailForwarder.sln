@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Solution", "_Solution", "{
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nogginbox.MailForwarder.Tests", "Nogginbox.MailForwarder.Tests\Nogginbox.MailForwarder.Tests.csproj", "{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +24,10 @@ Global
 		{1C5F54CC-ECAF-4A4E-9063-43C44B78F212}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C5F54CC-ECAF-4A4E-9063-43C44B78F212}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C5F54CC-ECAF-4A4E-9063-43C44B78F212}.Release|Any CPU.Build.0 = Release|Any CPU
+		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
