@@ -39,15 +39,23 @@ public class ForwardingMessageStore : MessageStore
 			// Log this
 			return SmtpServerResponse.MailboxNameNotAllowed;
 		}
-		
-		var emails = rules.DistinctBy(r => r.rule.ForwardAddress, StringComparer.OrdinalIgnoreCase);
-		var message = await GetMessageAsync(buffer, cancellationToken);
-		foreach (var email in emails)
-		{
-			await ForwardEmailAsync(email.email, email.rule, context, transaction, message, cancellationToken);
-		}
 
-		return SmtpServerResponse.SizeLimitExceeded;
+		try
+		{
+			var message = await GetMessageAsync(buffer, cancellationToken);
+			var emails = rules.DistinctBy(r => r.rule.ForwardAddress, StringComparer.OrdinalIgnoreCase);
+		
+			foreach (var email in emails)
+			{
+				await ForwardEmailAsync(email.email, email.rule, context, transaction, message, cancellationToken);
+			}
+			return SmtpServerResponse.Ok;
+		}
+		catch(Exception ex)
+		{
+			// Log this
+			return SmtpServerResponse.TransactionFailed;
+		}
 	}
 
 	private async Task<SmtpServerResponse> ForwardEmailAsync(IMailbox mailbox, ForwardRule rule, ISessionContext context, IMessageTransaction transaction, MimeMessage message, CancellationToken cancellationToken)
@@ -56,7 +64,7 @@ public class ForwardingMessageStore : MessageStore
 		var mailServer = (await _dnsFinder.LookupMxServers(toHost)).FirstOrDefault()
 			?? throw new Exception($"No mailserver found for domain '{toHost}'");
 		
-		_smtpClient.Connect(mailServer, 587, SecureSocketOptions.Auto, cancellationToken);
+		await _smtpClient.ConnectAsync(mailServer, 587, SecureSocketOptions.Auto, cancellationToken);
 
 		// Note: only needed if the SMTP server requires authentication
 		//client.Authenticate("joey", "password");
@@ -66,8 +74,8 @@ public class ForwardingMessageStore : MessageStore
 			new MailboxAddress($"Aliased from {mailbox.AsAddress()}", rule.ForwardAddress)
 		};
 			
-		_smtpClient.Send(message, null, recipients: forwardRecipients, cancellationToken);
-		_smtpClient.Disconnect(true, cancellationToken);
+		await _smtpClient.SendAsync(message, null, recipients: forwardRecipients, cancellationToken);
+		await _smtpClient.DisconnectAsync(true, cancellationToken);
 	
 
 		return SmtpServerResponse.SizeLimitExceeded;

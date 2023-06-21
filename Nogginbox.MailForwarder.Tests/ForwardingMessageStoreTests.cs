@@ -1,4 +1,4 @@
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MimeKit;
 using Nogginbox.MailForwarder.Server;
 using Nogginbox.MailForwarder.Server.Dns;
@@ -13,19 +13,23 @@ namespace Nogginbox.MailForwarder.Tests;
 
 public class ForwardingMessageStoreTests
 {
-	[Fact]
-	public async Task IgnoresEmailIfNoRuleMatches()
+	[Theory]
+	[InlineData("noone@nowhere.com")]
+	[InlineData("someone.nice@somewhere.com")]
+	[InlineData("noone@alias-domain.com")]
+	public async Task IgnoresEmailIfNoRuleMatches(string incomingRecipientAddress)
 	{
 		// Arrange
 		var rules = new List<ForwardRule>
 		{
-			new ForwardRule("someone.*@nowhere.com", "target@somewhere.com")
+			new ForwardRule("someone.*@alias-domain.com", "target@target-domain.com")
 		};
 		var dnsFinder = CreateMockFinder();
-		var smtpClient = CreateMockSmtpClient();
+		var storedMailKitResponses = new MailKitClientResponses();
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
 		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction("noone@nowhere.com");
+		var transaction = CreateMockTransaction(incomingRecipientAddress);
 		var buffer = CreateMessageInBuffer();
 
 		// Act
@@ -35,19 +39,24 @@ public class ForwardingMessageStoreTests
 		Assert.Equal(SmtpServerResponse.MailboxNameNotAllowed, response);
 	}
 
-	[Fact]
-	public async Task ForwardsEmailIfRuleMatches()
+	[Theory]
+	[InlineData("someone.awesome@alias-domain.com")]
+	[InlineData("someone.terrible@alias-domain.com")]
+	[InlineData("someone.田上@alias-domain.com")]
+	public async Task ForwardsEmailIfRuleMatches(string incomingRecipientAddress)
 	{
 		// Arrange
+		const string targetEmail = "target@target-domain.com";
 		var rules = new List<ForwardRule>
 		{
-			new ForwardRule("someone.*@nowhere.com", "target@somewhere.com")
+			new ForwardRule("someone.*@alias-domain.com", targetEmail)
 		};
 		var dnsFinder = CreateMockFinder();
-		var smtpClient = CreateMockSmtpClient();
+		var storedMailKitResponses = new MailKitClientResponses();
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
 		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction("someone.awesome@nowhere.com");
+		var transaction = CreateMockTransaction(incomingRecipientAddress);
 		var buffer = CreateMessageInBuffer();
 
 		// Act
@@ -55,6 +64,11 @@ public class ForwardingMessageStoreTests
 
 		// Assert
 		Assert.Equal(SmtpServerResponse.Ok, response);
+
+		await smtpClient.SendAsync(Arg.Any<MimeMessage>(), Arg.Any<MailboxAddress>(), Arg.Any<IEnumerable<MailboxAddress>>(), Arg.Any<CancellationToken>());
+		Assert.Contains(targetEmail, storedMailKitResponses.Recipients?.Select(r => r.Address) ?? Enumerable.Empty<string>());
+		
+		await smtpClient.Received().DisconnectAsync(true, Arg.Any<CancellationToken>());
 	}
 
 	private static ReadOnlySequence<byte> CreateMessageInBuffer()
@@ -88,9 +102,14 @@ public class ForwardingMessageStoreTests
 		return sub;
 	}
 
-	private static ISmtpClient CreateMockSmtpClient()
+	private static ISmtpClient CreateMockSmtpClient(MailKitClientResponses storedResponses)
 	{
 		var sub = Substitute.For<ISmtpClient>();
+		sub.SendAsync(Arg.Any<MimeMessage>(), Arg.Any<MailboxAddress>(), Arg.Any<IEnumerable<MailboxAddress>>(), Arg.Any<CancellationToken>())
+			.Returns(x => {
+				storedResponses.Recipients = (IEnumerable<MailboxAddress>)x[2];
+				return Task.FromResult("OK");
+			});
 		return sub;
 	}
 
@@ -100,5 +119,10 @@ public class ForwardingMessageStoreTests
 		var recipients = recipientAddresses.Select(r => new Mailbox(r) as IMailbox).ToList();
 		sub.To.Returns(recipients);
 		return sub;
+	}
+
+	private class MailKitClientResponses
+	{
+		public IEnumerable<MailboxAddress>? Recipients { get; set; }
 	}
 }
