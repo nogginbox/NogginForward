@@ -1,6 +1,9 @@
 # Noggin Mail Forwarder
 An SMTP Mail Server that can be configured to forward emails to another domain's address.
 
+## Status
+This server is in the development stages and does not work yet.
+
 ## How it works
 
 This server relies on the following projects:
