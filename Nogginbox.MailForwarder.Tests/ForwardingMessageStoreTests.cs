@@ -88,6 +88,7 @@ public class ForwardingMessageStoreTests
 
 	[Theory]
 	[InlineData(1, "test1@target1.com", "test2@target1.com")]
+	[InlineData(2, "test1@target1.com", "test2@target2.com", "test3@target1.com")]
 	public async Task GroupsEmailsByTargetHost(int domainCount, params string[] forwardRuleRecipients)
 	{
 		// Arrange
@@ -121,7 +122,8 @@ public class ForwardingMessageStoreTests
 
 		// Assert - Each response sending to only one domain
 		Assert.All(storedMailKitResponses, response => {
-			var domain = Assert.Single(response.Recipients?.Select(r => r.Domain)!);
+			var domains = response.Recipients?.Select(r => r.Domain).Distinct();
+			var domain = Assert.Single(domains!);
 			// Todo: Check response is being sent to correct MX
 		});
 
