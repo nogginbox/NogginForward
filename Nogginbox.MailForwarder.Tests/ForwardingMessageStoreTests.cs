@@ -23,7 +23,7 @@ public class ForwardingMessageStoreTests
 		const string targetEmail = "target@target-domain.com";
 		var rules = new List<ForwardRule>
 		{
-			new ForwardRule("someone.*@alias-domain.com", targetEmail)
+			new ("someone.*@alias-domain.com", targetEmail)
 		};
 		var dnsFinder = CreateMockFinder();
 		var storedMailKitResponses = new List<MailKitClientResponse>();
@@ -56,7 +56,48 @@ public class ForwardingMessageStoreTests
 	//[InlineData("someone.bcc@alias-domain.com")]
 	//public async Task ForwardsEmailIfRuleMatchesAnyRecipientField(string incomingRecipientAddress)
 
-	// DoubleEmailMatchWillForwardToTopRule
+	[Fact]
+	public async void IncomingAddressMatchingTwoRulesWillForwardToTopRule()
+	{
+		// Arrange
+		const string incomingRecipientAddress = "someone.testing@alias-domain.com";
+		const string targetEmail1 = "target1@target-domain.com";
+		const string targetEmail2 = "target2@target-domain.com";
+		var rules = new List<ForwardRule>
+		{
+			new ("someone.*@alias-domain.com", targetEmail1),
+			new ("*@alias-domain.com", targetEmail2)
+		};
+		var dnsFinder = CreateMockFinder();
+		var storedMailKitResponses = new List<MailKitClientResponse>();
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient);
+		var context = CreateMockSessionContext();
+		var transaction = CreateMockTransaction(incomingRecipientAddress);
+		var buffer = CreateMessageInBuffer();
+
+		// Act
+		var response = await store.SaveAsync(context, transaction, buffer, CancellationToken.None);
+
+		// Assert
+		Assert.Equal(SmtpServerResponse.Ok, response);
+
+		await smtpClient.Received()
+			.SendAsync(Arg.Any<MimeMessage>(), Arg.Any<MailboxAddress>(), Arg.Any<IEnumerable<MailboxAddress>>(), Arg.Any<CancellationToken>());
+
+		var storedMailKitResponse = Assert.Single(storedMailKitResponses);
+		Assert.NotNull(storedMailKitResponse.Recipients);
+		var recipientAddresses = storedMailKitResponse.Recipients.Select(r => r.Address);
+		var outgoingRecipient = Assert.Single(recipientAddresses);
+		Assert.Equal(targetEmail1, outgoingRecipient);
+
+		await smtpClient.Received().DisconnectAsync(true, Arg.Any<CancellationToken>());
+	}
+
+	public void MultipleOutgoingEmailToSameAddressWillOnlySendOnce()
+	{
+		Assert.Fail("ToTest");
+	}
 
 	[Theory]
 	[InlineData("noone@nowhere.com")]
