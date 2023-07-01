@@ -4,6 +4,14 @@ An SMTP Mail Server that can be configured to forward emails to another domain's
 ## Status
 This server is in the development stages and does not work yet.
 
+## Exposed Ports
+
+The Docker container exposes the following ports for communication:
+
+- Port 25: SMTP (Simple Mail Transfer Protocol)
+- Port 587: Submission (SMTP submission)
+- Port 465: SMTPS (SMTP over TLS/SSL)
+
 ## How it works
 
 This server relies on the following projects:

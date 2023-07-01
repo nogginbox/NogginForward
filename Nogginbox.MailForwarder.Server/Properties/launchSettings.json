@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Nogginbox.MailForwarder.Server": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "DockerfileRunArguments": "-p 25:25 -p 587:587 -p 465:465"
+    }
+  }
+}
