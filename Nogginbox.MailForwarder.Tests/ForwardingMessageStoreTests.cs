@@ -57,7 +57,7 @@ public class ForwardingMessageStoreTests
 	//public async Task ForwardsEmailIfRuleMatchesAnyRecipientField(string incomingRecipientAddress)
 
 	[Fact]
-	public async void IncomingAddressMatchingTwoRulesWillForwardToTopRule()
+	public async Task IncomingAddressMatchingTwoRulesWillForwardToTopRule()
 	{
 		// Arrange
 		const string incomingRecipientAddress = "someone.testing@alias-domain.com";
@@ -94,9 +94,42 @@ public class ForwardingMessageStoreTests
 		await smtpClient.Received().DisconnectAsync(true, Arg.Any<CancellationToken>());
 	}
 
-	public void MultipleOutgoingEmailToSameAddressWillOnlySendOnce()
+	[Fact]
+	public async Task MultipleOutgoingEmailToSameAddressWillOnlySendOnce()
 	{
-		Assert.Fail("ToTest");
+		// Arrange
+		const string targetEmail = "target@target-domain.com";
+		var rules = new List<ForwardRule>
+		{
+			new ("*@alias-domain.com", targetEmail)
+		};
+		var dnsFinder = CreateMockFinder();
+		var storedMailKitResponses = new List<MailKitClientResponse>();
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient);
+		var context = CreateMockSessionContext();
+		var transaction = CreateMockTransaction(
+			"alias1@alias-domain.com",
+			"alias2@alias-domain.com",
+			"alias3@alias-domain.com");
+		var buffer = CreateMessageInBuffer();
+
+		// Act
+		var response = await store.SaveAsync(context, transaction, buffer, CancellationToken.None);
+
+		// Assert
+		Assert.Equal(SmtpServerResponse.Ok, response);
+
+		await smtpClient.Received()
+			.SendAsync(Arg.Any<MimeMessage>(), Arg.Any<MailboxAddress>(), Arg.Any<IEnumerable<MailboxAddress>>(), Arg.Any<CancellationToken>());
+
+		var storedMailKitResponse = Assert.Single(storedMailKitResponses);
+		Assert.NotNull(storedMailKitResponse.Recipients);
+		var recipientAddresses = storedMailKitResponse.Recipients.Select(r => r.Address);
+		var outgoingRecipient = Assert.Single(recipientAddresses);
+		Assert.Equal(targetEmail, outgoingRecipient);
+
+		await smtpClient.Received().DisconnectAsync(true, Arg.Any<CancellationToken>());
 	}
 
 	[Theory]
