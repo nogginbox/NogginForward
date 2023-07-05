@@ -12,7 +12,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Solution", "_Solution", "{
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nogginbox.MailForwarder.Tests", "Nogginbox.MailForwarder.Tests\Nogginbox.MailForwarder.Tests.csproj", "{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nogginbox.MailForwarder.Tests", "Nogginbox.MailForwarder.Tests\Nogginbox.MailForwarder.Tests.csproj", "{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{E70E245D-92A2-4915-9836-58F9B27DC744}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nogginbox.MailForwarder.TestsOfIntegration", "Nogginbox.MailForwarder.TestsOfIntegration\Nogginbox.MailForwarder.TestsOfIntegration.csproj", "{9830B293-E6E0-43F4-94D2-987737D4C4F8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,9 +32,17 @@ Global
 		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9830B293-E6E0-43F4-94D2-987737D4C4F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9830B293-E6E0-43F4-94D2-987737D4C4F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9830B293-E6E0-43F4-94D2-987737D4C4F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9830B293-E6E0-43F4-94D2-987737D4C4F8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{244C3730-CB6A-40CE-9BEE-5CCBC0EC1027} = {E70E245D-92A2-4915-9836-58F9B27DC744}
+		{9830B293-E6E0-43F4-94D2-987737D4C4F8} = {E70E245D-92A2-4915-9836-58F9B27DC744}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CF0922EB-1CDE-48F4-AD0F-A0CC9B7C4ABC}

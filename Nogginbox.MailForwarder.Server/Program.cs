@@ -6,6 +6,9 @@ using Nogginbox.MailForwarder.Server.MessageStores;
 using SmtpServer;
 using SmtpServer.ComponentModel;
 
+
+Console.WriteLine("Starting Nogginbox Mailforwarding Server ...");
+
 var options = new SmtpServerOptionsBuilder()
 	.ServerName("localhost")
 	.Port(25, 587)
@@ -23,4 +26,50 @@ serviceProvider.Add(new ForwardingMessageStore(rules, dnsFinder, smtpClient));
 //serviceProvider.Add(new SampleUserAuthenticator());
 
 var smtpServer = new SmtpServer.SmtpServer(options, serviceProvider);
-await smtpServer.StartAsync(CancellationToken.None);
+
+
+// Register the error event handler
+smtpServer.SessionCreated += (s, e) =>
+{
+	Console.WriteLine("SMTP Session started.");
+
+	e.Context.CommandExecuting += (sender, args) =>
+	{
+		Console.WriteLine($"Command executing: {args.Command}");
+	};
+
+	e.Context.CommandExecuted += (sender, args) =>
+	{
+		Console.WriteLine($"Command executed: {args.Command}");
+	};
+
+	/*e.Context.ResponseSending += (sender, args) =>
+	{
+		Console.WriteLine($"Response sending: {args.Response}");
+	};
+
+	e.Context.ResponseSent += (sender, args) =>
+	{
+		Console.WriteLine($"Response sent: {args.Response}");
+	};*/
+};
+
+
+//await smtpServer.StartAsync(CancellationToken.None);
+
+
+try
+{
+	await smtpServer.StartAsync(CancellationToken.None);
+	Console.WriteLine("SMTP server started successfully.");
+}
+catch (Exception ex)
+{
+	Console.WriteLine($"An error occurred while starting the SMTP server: {ex.Message}");
+}
+
+
+Console.WriteLine("SMTP server started. Press any key to stop...");
+Console.ReadKey();
+
+//await smtpServer.StopAsync();
