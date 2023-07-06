@@ -1,0 +1,87 @@
+﻿using MailKit.Net.Smtp;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Nogginbox.MailForwarder.Server.Configuration;
+using Nogginbox.MailForwarder.Server.Dns;
+using Nogginbox.MailForwarder.Server.MailboxFilters;
+using Nogginbox.MailForwarder.Server.MessageStores;
+using SmtpServer;
+using SmtpServiceProvider = SmtpServer.ComponentModel.ServiceProvider;
+
+namespace Nogginbox.MailForwarder.Server;
+
+public class MailForwardServer
+{
+	private List<ForwardRule> _rules;
+	private DnsMxFinder _dnsFinder = new();
+	private SmtpClient _smtpClient = new();
+	private SmtpServer.SmtpServer _server;
+
+	public MailForwardServer(IServiceProvider services)
+	{
+		var config = services.GetRequiredService<IOptions<ForwardConfiguration>>().Value;
+
+		var options = new SmtpServerOptionsBuilder()
+			.ServerName(config.ServerName)
+			.Port(25, 587)
+			.Port(465, isSecure: true)
+			//.Certificate(CreateX509Certificate2())
+			.Build();
+
+		Init(config, options);
+	}
+
+	private void Init(ForwardConfiguration configuration, ISmtpServerOptions smtpOptions)
+	{
+		if(configuration.Rules?.Any() != true)
+		{
+			throw new Exception("No rules have been set in the configuration.");
+		}
+		_rules = new List<ForwardRule>(configuration.Rules.Select(r => new ForwardRule(r.Alias, r.Address)));
+
+		var serviceProvider = new SmtpServiceProvider();
+		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules));
+		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient));
+		//serviceProvider.Add(new SampleUserAuthenticator());
+		_server = new SmtpServer.SmtpServer(smtpOptions, serviceProvider);
+		RegisterSmtpEvents(_server);
+
+		// todo - make sure you get the rules from config
+	}
+
+	private static void RegisterSmtpEvents(SmtpServer.SmtpServer server)
+	{
+		server.SessionCreated += (s, e) =>
+		{
+			Console.WriteLine("SMTP Session started.");
+
+			e.Context.CommandExecuting += (sender, args) =>
+			{
+				Console.WriteLine($"Command executing: {args.Command}");
+			};
+
+			e.Context.CommandExecuted += (sender, args) =>
+			{
+				Console.WriteLine($"Command executed: {args.Command}");
+			};
+
+			/*e.Context.ResponseSending += (sender, args) =>
+			{
+				Console.WriteLine($"Response sending: {args.Response}");
+			};
+
+			e.Context.ResponseSent += (sender, args) =>
+			{
+				Console.WriteLine($"Response sent: {args.Response}");
+			};*/
+		};
+	}
+
+	public Task StartAsync(CancellationToken token = default)
+	{
+		return _server.StartAsync(token);
+	}
+}
+
+
+//await smtpServer.StopAsync();

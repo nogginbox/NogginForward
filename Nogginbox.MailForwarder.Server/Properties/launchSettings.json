@@ -5,6 +5,10 @@
     },
     "Docker": {
       "commandName": "Docker",
+      "environmentVariables": {
+        "MailForwarder__Rules__0__alias": "*@docker.localhost",
+        "MailForwarder__Rules__0__address": "code@nogginbox.co.uk"
+      },
       "DockerfileRunArguments": "-p 25:25 -p 587:587 -p 465:465"
     }
   }

@@ -5,13 +5,13 @@ namespace Nogginbox.MailForwarder.Server;
 
 public record ForwardRule(string AliasPattern, MailboxAddress ForwardAddress)
 {
-	public ForwardRule(string aliasPattern, string forwardAddress)
-		: this(aliasPattern, new MailboxAddress(forwardAddress, forwardAddress)) { }
+    public ForwardRule(string aliasPattern, string forwardAddress)
+        : this(aliasPattern, new MailboxAddress(forwardAddress, forwardAddress)) { }
 
 
-	private readonly Regex _aliasRegex = new(WildCardToRegular(AliasPattern), RegexOptions.IgnoreCase);
+    private readonly Regex _aliasRegex = new(WildCardToRegular(AliasPattern), RegexOptions.IgnoreCase);
 
-	public bool IsMatch(string address) => _aliasRegex.IsMatch(address);
+    public bool IsMatch(string address) => _aliasRegex.IsMatch(address);
 
-	private static string WildCardToRegular(string value) => $"^{Regex.Escape(value).Replace("\\*", ".*")}$";
+    private static string WildCardToRegular(string value) => $"^{Regex.Escape(value).Replace("\\*", ".*")}$";
 }

@@ -1,66 +1,29 @@
-﻿using MailKit.Net.Smtp;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Nogginbox.MailForwarder.Server;
-using Nogginbox.MailForwarder.Server.Dns;
-using Nogginbox.MailForwarder.Server.MailboxFilters;
-using Nogginbox.MailForwarder.Server.MessageStores;
-using SmtpServer;
-using SmtpServer.ComponentModel;
-
+using Nogginbox.MailForwarder.Server.Configuration;
 
 Console.WriteLine("Starting Nogginbox Mailforwarding Server ...");
 
-var options = new SmtpServerOptionsBuilder()
-	.ServerName("localhost")
-	.Port(25, 587)
-	.Port(465, isSecure: true)
-	//.Certificate(CreateX509Certificate2())
+var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+var configuration = new ConfigurationBuilder()
+	.SetBasePath(Directory.GetCurrentDirectory())
+	.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+	.AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
+	.AddEnvironmentVariables()
 	.Build();
 
-var rules = new List<ForwardRule>();
-var dnsFinder = new DnsMxFinder();
-var smtpClient = new SmtpClient();
-
-var serviceProvider = new ServiceProvider();
-serviceProvider.Add(new IsExpectedRecipientMailboxFilter(rules));
-serviceProvider.Add(new ForwardingMessageStore(rules, dnsFinder, smtpClient));
-//serviceProvider.Add(new SampleUserAuthenticator());
-
-var smtpServer = new SmtpServer.SmtpServer(options, serviceProvider);
+var services = new ServiceCollection()
+	.AddOptions()
+	.Configure<ForwardConfiguration>(configuration.GetRequiredSection("MailForwarder"))
+	.BuildServiceProvider();
 
 
-// Register the error event handler
-smtpServer.SessionCreated += (s, e) =>
-{
-	Console.WriteLine("SMTP Session started.");
-
-	e.Context.CommandExecuting += (sender, args) =>
-	{
-		Console.WriteLine($"Command executing: {args.Command}");
-	};
-
-	e.Context.CommandExecuted += (sender, args) =>
-	{
-		Console.WriteLine($"Command executed: {args.Command}");
-	};
-
-	/*e.Context.ResponseSending += (sender, args) =>
-	{
-		Console.WriteLine($"Response sending: {args.Response}");
-	};
-
-	e.Context.ResponseSent += (sender, args) =>
-	{
-		Console.WriteLine($"Response sent: {args.Response}");
-	};*/
-};
-
-
-//await smtpServer.StartAsync(CancellationToken.None);
-
+var server = new MailForwardServer(services);
 
 try
 {
-	await smtpServer.StartAsync(CancellationToken.None);
+	await server.StartAsync(CancellationToken.None);
 	Console.WriteLine("SMTP server started successfully.");
 }
 catch (Exception ex)
@@ -71,5 +34,3 @@ catch (Exception ex)
 
 Console.WriteLine("SMTP server started. Press any key to stop...");
 Console.ReadKey();
-
-//await smtpServer.StopAsync();
