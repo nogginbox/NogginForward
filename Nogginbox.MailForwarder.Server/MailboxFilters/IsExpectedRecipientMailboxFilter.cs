@@ -1,6 +1,8 @@
-﻿using SmtpServer;
+﻿using Microsoft.Extensions.Logging;
+using SmtpServer;
 using SmtpServer.Mail;
 using SmtpServer.Storage;
+using Logging = Microsoft.Extensions.Logging;
 
 namespace Nogginbox.MailForwarder.Server.MailboxFilters;
 
@@ -10,10 +12,12 @@ namespace Nogginbox.MailForwarder.Server.MailboxFilters;
 public class IsExpectedRecipientMailboxFilter : IMailboxFilter
 {
 	private readonly IReadOnlyList<ForwardRule> _rules;
+	private readonly Logging.ILogger _log;
 
-	public IsExpectedRecipientMailboxFilter(IReadOnlyList<ForwardRule> rules)
+	public IsExpectedRecipientMailboxFilter(IReadOnlyList<ForwardRule> rules, Logging.ILogger log)
 	{
 		_rules = rules;
+		_log = log;
 	}
 
 	public Task<MailboxFilterResult> CanAcceptFromAsync(ISessionContext context, IMailbox @from, int size, CancellationToken cancellationToken)
@@ -25,10 +29,11 @@ public class IsExpectedRecipientMailboxFilter : IMailboxFilter
 	{
 		if (!_rules.Any(r => r.IsMatch(to.AsAddress())))
 		{
-			// Log this
+			_log.LogWarning("Filter by recipient - NO, can not deliver to {recipient}", to.AsAddress());
 			return Task.FromResult(MailboxFilterResult.NoPermanently);
 		}
 
+		_log.LogInformation("Filter by recipient - YES, can deliver to {recipient}", to.AsAddress());
 		return Task.FromResult(MailboxFilterResult.Yes);
 	}
 }

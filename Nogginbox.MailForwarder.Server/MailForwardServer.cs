@@ -1,11 +1,13 @@
 ﻿using MailKit.Net.Smtp;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nogginbox.MailForwarder.Server.Configuration;
 using Nogginbox.MailForwarder.Server.Dns;
 using Nogginbox.MailForwarder.Server.MailboxFilters;
 using Nogginbox.MailForwarder.Server.MessageStores;
 using SmtpServer;
+using Logging = Microsoft.Extensions.Logging;
 using SmtpServiceProvider = SmtpServer.ComponentModel.ServiceProvider;
 
 namespace Nogginbox.MailForwarder.Server;
@@ -28,10 +30,11 @@ public class MailForwardServer
 			//.Certificate(CreateX509Certificate2())
 			.Build();
 
-		Init(config, options);
+		var loggerFactory = services.GetRequiredService<ILoggerFactory> ();
+		Init(config, options, loggerFactory);
 	}
 
-	private void Init(ForwardConfiguration configuration, ISmtpServerOptions smtpOptions)
+	private void Init(ForwardConfiguration configuration, ISmtpServerOptions smtpOptions, ILoggerFactory loggerFactory)
 	{
 		if(configuration.Rules?.Any() != true)
 		{
@@ -40,29 +43,29 @@ public class MailForwardServer
 		_rules = new List<ForwardRule>(configuration.Rules.Select(r => new ForwardRule(r.Alias, r.Address)));
 
 		var serviceProvider = new SmtpServiceProvider();
-		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules));
-		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient));
+		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules, loggerFactory.CreateLogger<IsExpectedRecipientMailboxFilter>()));
+		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient, loggerFactory.CreateLogger<ForwardingMessageStore>()));
 		//serviceProvider.Add(new SampleUserAuthenticator());
 		_server = new SmtpServer.SmtpServer(smtpOptions, serviceProvider);
-		RegisterSmtpEvents(_server);
+		RegisterSmtpEvents(_server, loggerFactory.CreateLogger<MailForwardServer>());
 
 		// todo - make sure you get the rules from config
 	}
 
-	private static void RegisterSmtpEvents(SmtpServer.SmtpServer server)
+	private static void RegisterSmtpEvents(SmtpServer.SmtpServer server, Logging.ILogger log)
 	{
 		server.SessionCreated += (s, e) =>
 		{
-			Console.WriteLine("SMTP Session started.");
+			log.LogInformation("SMTP Session started.");
 
 			e.Context.CommandExecuting += (sender, args) =>
 			{
-				Console.WriteLine($"Command executing: {args.Command}");
+				log.LogInformation("Command executing: {command}", args.Command);
 			};
 
 			e.Context.CommandExecuted += (sender, args) =>
 			{
-				Console.WriteLine($"Command executed: {args.Command}");
+				log.LogInformation("Command executed: {command}", args.Command);
 			};
 
 			/*e.Context.ResponseSending += (sender, args) =>

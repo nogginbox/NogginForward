@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Nogginbox.MailForwarder.Server;
 using Nogginbox.MailForwarder.Server.Configuration;
 
-Console.WriteLine("Starting Nogginbox Mailforwarding Server ...");
+Console.WriteLine("Nogginbox Mailforwarding Server");
 
 var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 var configuration = new ConfigurationBuilder()
@@ -13,11 +14,23 @@ var configuration = new ConfigurationBuilder()
 	.AddEnvironmentVariables()
 	.Build();
 
+
 var services = new ServiceCollection()
 	.AddOptions()
+	.AddLogging(loggingBuilder =>
+	{
+		loggingBuilder.AddSimpleConsole(options =>
+		{
+			options.IncludeScopes = true;
+			options.SingleLine = true;
+			options.TimestampFormat = "HH:mm:ss ";
+		});
+	})
 	.Configure<ForwardConfiguration>(configuration.GetRequiredSection("MailForwarder"))
 	.BuildServiceProvider();
 
+var log = services.GetRequiredService<ILogger<Program>>();
+log.LogInformation("Starting server");
 
 var server = new MailForwardServer(services);
 
@@ -28,7 +41,7 @@ try
 }
 catch (Exception ex)
 {
-	Console.WriteLine($"An error occurred while starting the SMTP server: {ex.Message}");
+	log.LogCritical(ex, "An error occurred while starting the SMTP server: {message}", ex.Message);
 }
 
 

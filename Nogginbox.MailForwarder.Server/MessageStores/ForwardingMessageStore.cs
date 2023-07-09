@@ -1,12 +1,13 @@
 ﻿using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using MimeKit;
 using Nogginbox.MailForwarder.Server.Dns;
-using Org.BouncyCastle.Asn1.Esf;
 using SmtpServer;
 using SmtpServer.Mail;
 using SmtpServer.Storage;
 using System.Buffers;
+using Logging = Microsoft.Extensions.Logging;
 using SmtpServerResponse = SmtpServer.Protocol.SmtpResponse;
 
 namespace Nogginbox.MailForwarder.Server.MessageStores;
@@ -17,12 +18,14 @@ namespace Nogginbox.MailForwarder.Server.MessageStores;
 public class ForwardingMessageStore : MessageStore
 {
 	private readonly IDnsMxFinder _dnsFinder;
+	private readonly Logging.ILogger _log;
 	private readonly IReadOnlyList<ForwardRule> _rules;
 	private readonly ISmtpClient _smtpClient;
 
-	public ForwardingMessageStore(IReadOnlyList<ForwardRule> rules, IDnsMxFinder dnsFinder, ISmtpClient smtpClient)
+	public ForwardingMessageStore(IReadOnlyList<ForwardRule> rules, IDnsMxFinder dnsFinder, ISmtpClient smtpClient, Logging.ILogger log)
 	{
 		_dnsFinder = dnsFinder;
+		_log = log;
 		_rules = rules;
 		_smtpClient = smtpClient;
 	}
@@ -40,7 +43,9 @@ public class ForwardingMessageStore : MessageStore
 
 		if (matchedRules?.Any() != true)
 		{
-			// Log this
+			_log.LogInformation("No rules in rulset({rulesetcount}) matched {recipients},",
+				_rules.Count,
+				string.Join(", ", transaction.To.Select(t => t.AsAddress())));
 			return SmtpServerResponse.MailboxNameNotAllowed;
 		}
 
@@ -48,21 +53,29 @@ public class ForwardingMessageStore : MessageStore
 		{
 			var message = await GetMessageAsync(buffer, cancellationToken);
 			var hostGroups = matchedRules.GroupBy(m => m.rule.ForwardAddress.Domain);
-		
-			foreach (var group in hostGroups)
+
+			var sendTasks = hostGroups.Select(async group =>
 			{
 				var domain = group.Key;
 				var forwardAddresses = group.Select(g => g.rule.ForwardAddress).ToList();
 
-				await ForwardEmailAsync(domain, forwardAddresses, context, transaction, message, cancellationToken);
+				return await ForwardEmailAsync(domain, forwardAddresses, context, transaction, message, cancellationToken);
+			});
+			var sendResponses = await Task.WhenAll(sendTasks);
+
+			if(sendResponses.Any(r => r == SmtpServerResponse.Ok))
+			{
+				// Todo: Better logging if not all emails are sent ok
+				_log.LogInformation("Email forwarded");
+				return SmtpServerResponse.Ok;
 			}
-			return SmtpServerResponse.Ok;
 		}
 		catch(Exception ex)
 		{
-			// Log this
-			return SmtpServerResponse.TransactionFailed;
+			_log.LogError(ex, "Error forwarding email - {message}", ex.Message);	
 		}
+		
+		return SmtpServerResponse.TransactionFailed;
 	}
 
 	private async Task<SmtpServerResponse> ForwardEmailAsync(string mailserverDomain, List<MailboxAddress> forwardRecipients, ISessionContext context, IMessageTransaction transaction, MimeMessage message, CancellationToken cancellationToken)
@@ -77,9 +90,8 @@ public class ForwardingMessageStore : MessageStore
 			
 		await _smtpClient.SendAsync(message, null, recipients: forwardRecipients, cancellationToken);
 		await _smtpClient.DisconnectAsync(true, cancellationToken);
-	
 
-		return SmtpServerResponse.SizeLimitExceeded;
+		return SmtpServerResponse.Ok;
 	}
 
 	private async static Task<MimeMessage> GetMessageAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
