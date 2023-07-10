@@ -35,5 +35,5 @@ jobs:
           push: true
           tags: |
             nogginbox/mailforwardserver:latest
-            nogginbox/mailforwardserver:${{ github.ref_slug }}-${{ github.run_number }}-${{ github.run_id }}
+            nogginbox/mailforwardserver:${{ github.ref_name | replace('/', '-') }}-${{ github.run_number }}-${{ github.run_id }}
 
