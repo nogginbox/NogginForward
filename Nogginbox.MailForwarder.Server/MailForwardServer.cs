@@ -40,14 +40,23 @@ public class MailForwardServer
 		{
 			throw new Exception("No rules have been set in the configuration.");
 		}
-		_rules = new List<ForwardRule>(configuration.Rules.Select(r => new ForwardRule(r.Alias, r.Address)));
+		
+		_rules = new List<ForwardRule>();
+		var log = loggerFactory.CreateLogger<MailForwardServer>();
+		foreach(var configRule in configuration.Rules)
+		{
+			var rule = new ForwardRule(configRule.Alias, configRule.Address);
+			_rules.Add(rule);
+			log.LogInformation("Registered rule (pattern: {pattern}, forward: {forward}", rule.AliasPattern, rule.ForwardAddress);
+		}
+		log.LogInformation("{rulecount} rules finised registering.", _rules.Count);
 
 		var serviceProvider = new SmtpServiceProvider();
 		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules, loggerFactory.CreateLogger<IsExpectedRecipientMailboxFilter>()));
 		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient, loggerFactory.CreateLogger<ForwardingMessageStore>()));
 		//serviceProvider.Add(new SampleUserAuthenticator());
 		_server = new SmtpServer.SmtpServer(smtpOptions, serviceProvider);
-		RegisterSmtpEvents(_server, loggerFactory.CreateLogger<MailForwardServer>());
+		RegisterSmtpEvents(_server, log);
 
 		// todo - make sure you get the rules from config
 	}
