@@ -32,7 +32,8 @@ public class ForwardingMessageStore : MessageStore
 
 	public override async Task<SmtpServerResponse> SaveAsync(ISessionContext context, IMessageTransaction transaction, ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
 	{
-		var matchedRules = transaction.To
+		_log.LogInformation("Begin send attempt");
+;		var matchedRules = transaction.To
 			.Where(t => t != null)
 			.Select(t => (email: t, rule:_rules.FirstOrDefault(r => r.IsMatch(t.AsAddress()))))
 			.Where(t => t.rule != null && t.rule?.ForwardAddress != null)
@@ -43,7 +44,7 @@ public class ForwardingMessageStore : MessageStore
 
 		if (matchedRules?.Any() != true)
 		{
-			_log.LogInformation("No rules in rulset({rulesetcount}) matched {recipients},",
+			_log.LogWarning("No rules in rulset({rulesetcount}) matched {recipients},",
 				_rules.Count,
 				string.Join(", ", transaction.To.Select(t => t.AsAddress())));
 			return SmtpServerResponse.MailboxNameNotAllowed;

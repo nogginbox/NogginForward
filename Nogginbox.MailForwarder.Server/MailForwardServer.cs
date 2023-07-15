@@ -49,7 +49,7 @@ public class MailForwardServer
 			_rules.Add(rule);
 			log.LogInformation("Registered rule (pattern: {pattern}, forward: {forward}", rule.AliasPattern, rule.ForwardAddress);
 		}
-		log.LogInformation("{rulecount} rules finised registering.", _rules.Count);
+		log.LogInformation("{rulecount} rules completed registering.", _rules.Count);
 
 		var serviceProvider = new SmtpServiceProvider();
 		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules, loggerFactory.CreateLogger<IsExpectedRecipientMailboxFilter>()));
