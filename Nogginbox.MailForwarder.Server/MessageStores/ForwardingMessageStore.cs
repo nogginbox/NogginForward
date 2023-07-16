@@ -33,7 +33,7 @@ public class ForwardingMessageStore : MessageStore
 	public override async Task<SmtpServerResponse> SaveAsync(ISessionContext context, IMessageTransaction transaction, ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
 	{
 		_log.LogInformation("Begin send attempt");
-;		var matchedRules = transaction.To
+		var matchedRules = transaction.To
 			.Where(t => t != null)
 			.Select(t => (email: t, rule:_rules.FirstOrDefault(r => r.IsMatch(t.AsAddress()))))
 			.Where(t => t.rule != null && t.rule?.ForwardAddress != null)
@@ -83,13 +83,24 @@ public class ForwardingMessageStore : MessageStore
 	{
 		var mailServer = (await _dnsFinder.LookupMxServers(mailserverDomain)).FirstOrDefault()
 			?? throw new Exception($"No mailserver found for domain '{mailserverDomain}'");
-		
-		await _smtpClient.ConnectAsync(mailServer, 587, SecureSocketOptions.Auto, cancellationToken);
+
+		_log.LogInformation("Completed DNS MX lookup of '{mailserver-domain}' and found address:'{mailserver-address}'", mailserverDomain, mailServer);
+
+		try
+		{
+			await _smtpClient.ConnectAsync(mailServer, 587, SecureSocketOptions.Auto, cancellationToken);
+		}
+		catch (Exception ex)
+		{
+			throw new Exception($"Failed to connect to mailserver:{mailServer}", ex);
+		}
 
 		// Note: only needed if the SMTP server requires authentication
 		//client.Authenticate("joey", "password");
 			
-		await _smtpClient.SendAsync(message, null, recipients: forwardRecipients, cancellationToken);
+		var response = await _smtpClient.SendAsync(message, null, recipients: forwardRecipients, cancellationToken);
+		_log.LogInformation("Forward server responded with {response}", response);
+
 		await _smtpClient.DisconnectAsync(true, cancellationToken);
 
 		return SmtpServerResponse.Ok;
