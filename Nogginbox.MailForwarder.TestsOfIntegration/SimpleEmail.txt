@@ -1,0 +1,7 @@
+﻿Subject: Test Email
+Date: Tue, 18 Jul 2023 21:41:00
+From: test@docker.localhost
+To: code@nogginbox.co.uk
+Message-Id: <56d4ae71-e38c-4530-81ea-60a87546e9e7@docker.local>
+
+Test content as descibed in the RFC http://www.faqs.org/rfcs/rfc2822.html.
