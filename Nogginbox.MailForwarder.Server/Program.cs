@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Nogginbox.MailForwarder.Server;
 using Nogginbox.MailForwarder.Server.Configuration;
 
-const decimal Version = 1.0m;
+const decimal Version = 1.01m;
 
 Console.WriteLine($"NogginForward Server {Version}");
 

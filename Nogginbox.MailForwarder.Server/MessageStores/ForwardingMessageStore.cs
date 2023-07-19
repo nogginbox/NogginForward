@@ -122,8 +122,11 @@ public class ForwardingMessageStore : MessageStore
 		{
 			throw new Exception($"Failed to send", ex);
 		}
-
-		await _smtpClient.DisconnectAsync(true, cancellationToken);
+		finally
+		{
+			_log.LogInformation("Closing connection to mailserver:{mailServer}", mailServer);
+			await _smtpClient.DisconnectAsync(true, cancellationToken);
+		}
 
 		return SmtpServerResponse.Ok;
 	}
