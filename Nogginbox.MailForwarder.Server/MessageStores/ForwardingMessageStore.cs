@@ -22,6 +22,11 @@ public class ForwardingMessageStore : MessageStore
 	private readonly IReadOnlyList<ForwardRule> _rules;
 	private readonly ISmtpClient _smtpClient;
 
+	/// <summary>
+	/// The SMTP port used for server to server communication.
+	/// </summary>
+	private const int SmtpPort = 25;
+
 	public ForwardingMessageStore(IReadOnlyList<ForwardRule> rules, IDnsMxFinder dnsFinder, ISmtpClient smtpClient, Logging.ILogger log)
 	{
 		_dnsFinder = dnsFinder;
@@ -33,7 +38,7 @@ public class ForwardingMessageStore : MessageStore
 	public override async Task<SmtpServerResponse> SaveAsync(ISessionContext context, IMessageTransaction transaction, ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
 	{
 		_log.LogInformation("Begin send attempt");
-;		var matchedRules = transaction.To
+		var matchedRules = transaction.To
 			.Where(t => t != null)
 			.Select(t => (email: t, rule:_rules.FirstOrDefault(r => r.IsMatch(t.AsAddress()))))
 			.Where(t => t.rule != null && t.rule?.ForwardAddress != null)
@@ -53,6 +58,7 @@ public class ForwardingMessageStore : MessageStore
 		try
 		{
 			var message = await GetMessageAsync(buffer, cancellationToken);
+			var sender = new MailboxAddress(transaction.From.User, transaction.From.AsAddress());
 			var hostGroups = matchedRules.GroupBy(m => m.rule.ForwardAddress.Domain);
 
 			var sendTasks = hostGroups.Select(async group =>
@@ -60,7 +66,7 @@ public class ForwardingMessageStore : MessageStore
 				var domain = group.Key;
 				var forwardAddresses = group.Select(g => g.rule.ForwardAddress).ToList();
 
-				return await ForwardEmailAsync(domain, forwardAddresses, context, transaction, message, cancellationToken);
+				return await ForwardEmailAsync(domain, sender, forwardAddresses, context, transaction, message, cancellationToken);
 			});
 			var sendResponses = await Task.WhenAll(sendTasks);
 
@@ -79,17 +85,44 @@ public class ForwardingMessageStore : MessageStore
 		return SmtpServerResponse.TransactionFailed;
 	}
 
-	private async Task<SmtpServerResponse> ForwardEmailAsync(string mailserverDomain, List<MailboxAddress> forwardRecipients, ISessionContext context, IMessageTransaction transaction, MimeMessage message, CancellationToken cancellationToken)
+	private async Task<SmtpServerResponse> ForwardEmailAsync(string mailserverDomain, MailboxAddress sender, List<MailboxAddress> forwardRecipients, ISessionContext context, IMessageTransaction transaction, MimeMessage message, CancellationToken cancellationToken)
 	{
 		var mailServer = (await _dnsFinder.LookupMxServers(mailserverDomain)).FirstOrDefault()
 			?? throw new Exception($"No mailserver found for domain '{mailserverDomain}'");
-		
-		await _smtpClient.ConnectAsync(mailServer, 587, SecureSocketOptions.Auto, cancellationToken);
+
+		_log.LogInformation("Completed DNS MX lookup of '{mailserver-domain}' and found address:'{mailserver-address}'", mailserverDomain, mailServer);
+
+		try
+		{
+			await _smtpClient.ConnectAsync(mailServer, SmtpPort, SecureSocketOptions.Auto, cancellationToken);
+			_log.LogInformation("Connected to {mailServer}:{SmtpPost}", mailServer, SmtpPort);
+		}
+		catch (Exception ex)
+		{
+			throw new Exception($"Failed to connect to mailserver:{mailServer} on port {SmtpPort}", ex);
+		}
 
 		// Note: only needed if the SMTP server requires authentication
 		//client.Authenticate("joey", "password");
-			
-		await _smtpClient.SendAsync(message, null, recipients: forwardRecipients, cancellationToken);
+
+		try
+		{
+			var response = await _smtpClient.SendAsync(message, sender, recipients: forwardRecipients, cancellationToken);
+			_log.LogInformation("Forward server responded with {response}", response);
+		}
+		catch (SmtpCommandException ex)
+		{
+			_log.LogError(ex, "Failed to send ({code}): {response}", ex.StatusCode, ex.Message);
+			return ex.StatusCode switch
+			{
+				_ => SmtpServerResponse.MailboxUnavailable
+			}; ;
+		}
+		catch (Exception ex)
+		{
+			throw new Exception($"Failed to send", ex);
+		}
+
 		await _smtpClient.DisconnectAsync(true, cancellationToken);
 
 		return SmtpServerResponse.Ok;

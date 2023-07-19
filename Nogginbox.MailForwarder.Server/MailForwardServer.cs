@@ -1,4 +1,5 @@
-﻿using MailKit.Net.Smtp;
+﻿using DnsClient.Internal;
+using MailKit.Net.Smtp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,6 +8,7 @@ using Nogginbox.MailForwarder.Server.Dns;
 using Nogginbox.MailForwarder.Server.MailboxFilters;
 using Nogginbox.MailForwarder.Server.MessageStores;
 using SmtpServer;
+using SmtpServer.Authentication;
 using Logging = Microsoft.Extensions.Logging;
 using SmtpServiceProvider = SmtpServer.ComponentModel.ServiceProvider;
 
@@ -14,9 +16,9 @@ namespace Nogginbox.MailForwarder.Server;
 
 public class MailForwardServer
 {
-	private List<ForwardRule> _rules;
-	private DnsMxFinder _dnsFinder = new();
-	private SmtpClient _smtpClient = new();
+	private readonly List<ForwardRule> _rules = new ();
+	private readonly DnsMxFinder _dnsFinder = new();
+	private readonly SmtpClient _smtpClient = new();
 	private SmtpServer.SmtpServer _server;
 
 	public MailForwardServer(IServiceProvider services)
@@ -30,35 +32,38 @@ public class MailForwardServer
 			//.Certificate(CreateX509Certificate2())
 			.Build();
 
-		var loggerFactory = services.GetRequiredService<ILoggerFactory> ();
+		var loggerFactory = services.GetRequiredService<Logging.ILoggerFactory>();
 		Init(config, options, loggerFactory);
 	}
 
-	private void Init(ForwardConfiguration configuration, ISmtpServerOptions smtpOptions, ILoggerFactory loggerFactory)
+	private void Init(ForwardConfiguration configuration, ISmtpServerOptions smtpOptions, Logging.ILoggerFactory loggerFactory)
 	{
 		if(configuration.Rules?.Any() != true)
 		{
 			throw new Exception("No rules have been set in the configuration.");
 		}
-		
-		_rules = new List<ForwardRule>();
+
 		var log = loggerFactory.CreateLogger<MailForwardServer>();
-		foreach(var configRule in configuration.Rules)
+		LoadRules(configuration, log);
+
+		var serviceProvider = new SmtpServiceProvider();
+		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules, loggerFactory.CreateLogger<IsExpectedRecipientMailboxFilter>()));
+		serviceProvider.Add(new SampleUserAuthenticator());
+		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient, loggerFactory.CreateLogger<ForwardingMessageStore>()));
+		//serviceProvider.Add(new SampleUserAuthenticator());
+		_server = new SmtpServer.SmtpServer(smtpOptions, serviceProvider);
+		RegisterSmtpEvents(_server, log);
+	}
+
+	private void LoadRules(ForwardConfiguration configuration, Logging.ILogger log)
+	{	
+		foreach (var configRule in configuration.Rules)
 		{
 			var rule = new ForwardRule(configRule.Alias, configRule.Address);
 			_rules.Add(rule);
 			log.LogInformation("Registered rule (pattern: {pattern}, forward: {forward}", rule.AliasPattern, rule.ForwardAddress);
 		}
 		log.LogInformation("{rulecount} rules completed registering.", _rules.Count);
-
-		var serviceProvider = new SmtpServiceProvider();
-		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules, loggerFactory.CreateLogger<IsExpectedRecipientMailboxFilter>()));
-		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient, loggerFactory.CreateLogger<ForwardingMessageStore>()));
-		//serviceProvider.Add(new SampleUserAuthenticator());
-		_server = new SmtpServer.SmtpServer(smtpOptions, serviceProvider);
-		RegisterSmtpEvents(_server, log);
-
-		// todo - make sure you get the rules from config
 	}
 
 	private static void RegisterSmtpEvents(SmtpServer.SmtpServer server, Logging.ILogger log)
@@ -69,29 +74,37 @@ public class MailForwardServer
 
 			e.Context.CommandExecuting += (sender, args) =>
 			{
-				log.LogInformation("Command executing: {command}", args.Command);
+				log.LogInformation("Cmd executing: {command}", args.Command);
 			};
 
 			e.Context.CommandExecuted += (sender, args) =>
 			{
-				log.LogInformation("Command executed: {command}", args.Command);
+				log.LogInformation("Cmd executed: {command}", args.Command);
 			};
 
-			/*e.Context.ResponseSending += (sender, args) =>
+			e.Context.SessionAuthenticated += (sender, args) =>
 			{
-				Console.WriteLine($"Response sending: {args.Response}");
+				log.LogInformation("Session authenticated");
 			};
-
-			e.Context.ResponseSent += (sender, args) =>
-			{
-				Console.WriteLine($"Response sent: {args.Response}");
-			};*/
 		};
 	}
 
 	public Task StartAsync(CancellationToken token = default)
 	{
 		return _server.StartAsync(token);
+	}
+}
+
+/// <summary>
+/// Just for testing so far. Checking if the default one is stopping stuff.
+/// </summary>
+public class SampleUserAuthenticator : IUserAuthenticator
+{
+	public Task<bool> AuthenticateAsync(ISessionContext context, string user, string password, CancellationToken token)
+	{
+		Console.WriteLine("User={0} Password={1}", user, password);
+
+		return Task.FromResult(user.Length > 4);
 	}
 }
 
