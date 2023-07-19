@@ -112,7 +112,7 @@ public class ForwardingMessageStore : MessageStore
 		}
 		catch (SmtpCommandException ex)
 		{
-			_log.LogError(ex, "Failed to send: {response}", ex.Message);
+			_log.LogError(ex, "Failed to send ({code}): {response}", ex.StatusCode, ex.Message);
 			return ex.StatusCode switch
 			{
 				_ => SmtpServerResponse.MailboxUnavailable
