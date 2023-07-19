@@ -1,10 +1,35 @@
-# Noggin Mail Forwarder
-An SMTP Mail Server that can be configured to forward emails to another domain's address.
+# Noggin Forward (SMTP Email Forwarding Server)
+An SMTP Mail Server that can be configured to forward emails to another domain's address. It's designed to be run in a docker container and can be configured using a docker compose file.
 
 ## Status
-This server is in the development stages and does not work yet.
+This is the first version and works for me so far. I'd love other people to use it, but I wouldn't use it for business critical email just yet.
 
-## Exposed Ports
+## Installing with docker compose
+
+Here is a sample docker compose file:
+```
+version: "3.9" 
+name: "your-forward-server" 
+ 
+services: 
+ 
+  #### Noggin Forward SMTP Server #### 
+  forward-server:
+    container_name: noggin-forward-server 
+    image: nogginbox/nogginforward:main
+    ports:
+      - "25:25"
+      - "587:587"
+      - "465:465"
+    restart: on-failure
+    environment:
+        MailForwarder__Rules__0__alias: "*.awesome@alias-domain.co" 
+        MailForwarder__Rules__0__address: "us@my-domain.co" 
+        MailForwarder__Rules__1__alias: "*.stupid@alias-domain.co" 
+        MailForwarder__Rules__1__address: "them@my-domain.co"
+```
+
+### Exposed Ports
 
 The Docker container exposes the following ports for communication:
 
@@ -12,8 +37,14 @@ The Docker container exposes the following ports for communication:
 - Port 587: Submission (SMTP submission)
 - Port 465: SMTPS (SMTP over TLS/SSL)
 
-## Setting the email rules
-The server loads rules from docker environment variables when booting. Here is an example environment section:
+### Setting the email rules
+The server loads rules from docker environment variables when booting. Each rule has two values, alias and address.
+
+* alias: The email alias to check for as the recipient of incoming email. This can be a plain email address, or can contain ``*`` as a wildcard.
+* address: This is the address to forward the email to and must be a valid email address.
+* 
+
+Each rule must include a sequential number starting from zero, like so:
 ```
 environment:
     MailForwarder__Rules__0__alias: "*.awesome@alias-domain.co" 
@@ -21,7 +52,7 @@ environment:
     MailForwarder__Rules__1__alias: "*.stupid@alias-domain.co" 
     MailForwarder__Rules__1__address: "them@my-domain.co"
 ```
-The numbers need to be sequential starting from zero and match for the two properties of each rule.
+
 
 ## How it works
 
@@ -47,16 +78,19 @@ ehlo sender.co
 mail from:<test@sending-domain.co>
 > 250 Ok
 
-rcpt to:<someone.awesome@alias-domain.co>
+rcpt to:<us@my-domain.co>
 > 250 Ok
 
 data
 > 354 end with <CRLF>.<CRLF>
 
-Subject: Testing NogginForward Server
+Subject: Test Email
+Date: Tue, 18 Jul 2023 21:41:00
+From: test@docker.localhost
+To: someone.awesome@alias-domain.co
+Message-Id: <56d4ae71-e38c-4530-81ea-60a87546e9e7@docker.local>
 
-I do hope this works.
+Test content as descibed in the RFC http://www.faqs.org/rfcs/rfc2822.html.
 .
 
 ```
-RCPT TO:<sender1@docker.localhost>

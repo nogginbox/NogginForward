@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging;
 using Nogginbox.MailForwarder.Server;
 using Nogginbox.MailForwarder.Server.Configuration;
 
-Console.WriteLine("Nogginbox Mailforwarding Server");
+const decimal Version = 1.0m;
+
+Console.WriteLine($"NogginForward Server {Version}");
 
 var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 var configuration = new ConfigurationBuilder()
@@ -30,7 +32,7 @@ var services = new ServiceCollection()
 	.BuildServiceProvider();
 
 var log = services.GetRequiredService<ILogger<Program>>();
-log.LogInformation("Starting server");
+log.LogInformation("Starting NogginForward {Version}", Version);
 
 var server = new MailForwardServer(services);
 
