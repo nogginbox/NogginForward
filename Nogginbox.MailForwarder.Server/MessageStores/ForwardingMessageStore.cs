@@ -20,19 +20,19 @@ public class ForwardingMessageStore : MessageStore
 	private readonly IDnsMxFinder _dnsFinder;
 	private readonly Logging.ILogger _log;
 	private readonly IReadOnlyList<ForwardRule> _rules;
-	private readonly ISmtpClient _smtpClient;
+	private readonly Func<ISmtpClient> _smtpClientFactory;
 
 	/// <summary>
 	/// The SMTP port used for server to server communication.
 	/// </summary>
 	private const int SmtpPort = 25;
 
-	public ForwardingMessageStore(IReadOnlyList<ForwardRule> rules, IDnsMxFinder dnsFinder, ISmtpClient smtpClient, Logging.ILogger log)
+	public ForwardingMessageStore(IReadOnlyList<ForwardRule> rules, IDnsMxFinder dnsFinder, Func<ISmtpClient> smtpClientFactory, Logging.ILogger log)
 	{
 		_dnsFinder = dnsFinder;
 		_log = log;
 		_rules = rules;
-		_smtpClient = smtpClient;
+		_smtpClientFactory = smtpClientFactory;
 	}
 
 	public override async Task<SmtpServerResponse> SaveAsync(ISessionContext context, IMessageTransaction transaction, ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
@@ -92,9 +92,11 @@ public class ForwardingMessageStore : MessageStore
 
 		_log.LogInformation("Completed DNS MX lookup of '{mailserver-domain}' and found address:'{mailserver-address}'", mailserverDomain, mailServer);
 
+		using var smtpClient = _smtpClientFactory();
+
 		try
 		{
-			await _smtpClient.ConnectAsync(mailServer, SmtpPort, SecureSocketOptions.Auto, cancellationToken);
+			await smtpClient.ConnectAsync(mailServer, SmtpPort, SecureSocketOptions.Auto, cancellationToken);
 			_log.LogInformation("Connected to {mailServer}:{SmtpPost}", mailServer, SmtpPort);
 		}
 		catch (Exception ex)
@@ -107,7 +109,7 @@ public class ForwardingMessageStore : MessageStore
 
 		try
 		{
-			var response = await _smtpClient.SendAsync(message, sender, recipients: forwardRecipients, cancellationToken);
+			var response = await smtpClient.SendAsync(message, sender, recipients: forwardRecipients, cancellationToken);
 			_log.LogInformation("Forward server responded with {response}", response);
 		}
 		catch (SmtpCommandException ex)
@@ -125,7 +127,7 @@ public class ForwardingMessageStore : MessageStore
 		finally
 		{
 			_log.LogInformation("Closing connection to mailserver:{mailServer}", mailServer);
-			await _smtpClient.DisconnectAsync(true, cancellationToken);
+			await smtpClient.DisconnectAsync(true, cancellationToken);
 		}
 
 		return SmtpServerResponse.Ok;

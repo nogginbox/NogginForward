@@ -1,4 +1,4 @@
-﻿using MailKit.Net.Smtp;
+using MailKit.Net.Smtp;
 using MimeKit;
 using Nogginbox.MailForwarder.Server;
 using Nogginbox.MailForwarder.Server.Dns;
@@ -29,10 +29,11 @@ public class ForwardingMessageStoreTests
 		var dnsFinder = CreateMockFinder();
 		var storedMailKitResponses = new List<MailKitClientResponse>();
 		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var smtpClientFactory = () => smtpClient;
 		var log = Substitute.For<Logging.ILogger>();
-		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient, log);
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClientFactory, log);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction(incomingRecipientAddress);
+		var transaction = CreateMockEmailTransaction(incomingRecipientAddress);
 		var buffer = CreateMessageInBuffer();
 
 		// Act
@@ -72,11 +73,12 @@ public class ForwardingMessageStoreTests
 		};
 		var dnsFinder = CreateMockFinder();
 		var storedMailKitResponses = new List<MailKitClientResponse>();
-		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
 		var log = Substitute.For<Logging.ILogger>();
-		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient, log);
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var smtpClientFactory = () => smtpClient;
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClientFactory, log);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction(incomingRecipientAddress);
+		var transaction = CreateMockEmailTransaction(incomingRecipientAddress);
 		var buffer = CreateMessageInBuffer();
 
 		// Act
@@ -108,11 +110,12 @@ public class ForwardingMessageStoreTests
 		};
 		var dnsFinder = CreateMockFinder();
 		var storedMailKitResponses = new List<MailKitClientResponse>();
-		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
 		var log = Substitute.For<Logging.ILogger>();
-		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient, log);
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var smtpClientFactory = () => smtpClient;
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClientFactory, log);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction(
+		var transaction = CreateMockEmailTransaction(
 			"alias1@alias-domain.com",
 			"alias2@alias-domain.com",
 			"alias3@alias-domain.com");
@@ -150,11 +153,12 @@ public class ForwardingMessageStoreTests
 		};
 		var dnsFinder = CreateMockFinder();
 		var storedMailKitResponses = new List<MailKitClientResponse>();
-		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
 		var log = Substitute.For<Logging.ILogger>();
-		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient, log);
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var smtpClientFactory = () => smtpClient;
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClientFactory, log);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction(incomingRecipientAddress);
+		var transaction = CreateMockEmailTransaction(incomingRecipientAddress);
 		var buffer = CreateMessageInBuffer();
 
 		// Act
@@ -182,11 +186,12 @@ public class ForwardingMessageStoreTests
 
 		var dnsFinder = CreateMockFinder();
 		var storedMailKitResponses = new List<MailKitClientResponse>();
-		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
 		var log = Substitute.For<Logging.ILogger>();
-		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClient, log);
+		var smtpClient = CreateMockSmtpClient(storedMailKitResponses);
+		var smtpClientFactory = () => smtpClient;
+		var store = new ForwardingMessageStore(rules, dnsFinder, smtpClientFactory, log);
 		var context = CreateMockSessionContext();
-		var transaction = CreateMockTransaction(incomingRecipientAddress);
+		var transaction = CreateMockEmailTransaction(incomingRecipientAddress);
 		var buffer = CreateMessageInBuffer();
 
 		// Act

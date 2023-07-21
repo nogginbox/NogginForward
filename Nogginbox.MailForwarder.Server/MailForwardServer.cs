@@ -18,7 +18,6 @@ public class MailForwardServer
 {
 	private readonly List<ForwardRule> _rules = new ();
 	private readonly DnsMxFinder _dnsFinder = new();
-	private readonly SmtpClient _smtpClient = new();
 	private SmtpServer.SmtpServer _server;
 
 	public MailForwardServer(IServiceProvider services)
@@ -49,7 +48,7 @@ public class MailForwardServer
 		var serviceProvider = new SmtpServiceProvider();
 		serviceProvider.Add(new IsExpectedRecipientMailboxFilter(_rules, loggerFactory.CreateLogger<IsExpectedRecipientMailboxFilter>()));
 		serviceProvider.Add(new SampleUserAuthenticator());
-		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, _smtpClient, loggerFactory.CreateLogger<ForwardingMessageStore>()));
+		serviceProvider.Add(new ForwardingMessageStore(_rules, _dnsFinder, () => new SmtpClient(), loggerFactory.CreateLogger<ForwardingMessageStore>()));
 		//serviceProvider.Add(new SampleUserAuthenticator());
 		_server = new SmtpServer.SmtpServer(smtpOptions, serviceProvider);
 		RegisterSmtpEvents(_server, log);
