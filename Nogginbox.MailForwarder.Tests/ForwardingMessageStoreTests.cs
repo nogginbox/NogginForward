@@ -1,4 +1,4 @@
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MimeKit;
 using Nogginbox.MailForwarder.Server;
 using Nogginbox.MailForwarder.Server.Dns;
@@ -272,15 +272,18 @@ public class ForwardingMessageStoreTests
 		return sub;
 	}
 
-	private static IMessageTransaction CreateMockTransaction(params string[] recipientAddresses)
-		=> CreateMockTransaction(recipientAddresses as IEnumerable<string>);
+	private static IMessageTransaction CreateMockEmailTransaction(params string[] recipientAddresses)
+		=> CreateMockEmailTransaction(recipientAddresses as IEnumerable<string>);
 
-	private static IMessageTransaction CreateMockTransaction(IEnumerable<string> recipientAddresses)
+	private static IMessageTransaction CreateMockEmailTransaction(IEnumerable<string> recipientAddresses)
 	{
-		var sub = Substitute.For<IMessageTransaction>();
+		var emailTransaction = Substitute.For<IMessageTransaction>();
 		var recipients = recipientAddresses.Select(r => new Mailbox(r) as IMailbox).ToList();
-		sub.To.Returns(recipients);
-		return sub;
+		var sender = new Mailbox("test.sender", "localhost");
+		emailTransaction.To.Returns(recipients);
+		emailTransaction.From.Returns(sender);
+
+		return emailTransaction;
 	}
 
 
